@@ -44,6 +44,11 @@ namespace WeatherController
         private float nextWindChangeTime = 30f;
         private System.Random rng = new System.Random();
 
+        //Dynamic time
+
+        private bool dynamicTimeEnabled = false;
+        private float dynamicTime = 1f;  // 1 = normal, 2 = fast, 0.5 = slow
+
         // Weather trend (for natural progression)
         private int weatherTrend = 0;  // -1 = improving, 0 = stable, 1 = worsening
 
@@ -87,11 +92,20 @@ namespace WeatherController
                     SearchWeatherSystem();
                 }
             }
-
             // Dynamic weather update
-            if (dynamicWeatherEnabled && initialized && weatherTarget != null)
+            if (initialized && weatherTarget != null)
             {
-                UpdateDynamicWeather();
+                if (dynamicTimeEnabled)
+                {
+                    timeOfDay += (Time.deltaTime * (72 * dynamicTime) / 3600f); // A dynamic time of 1 = 20 min per  in game 24 hour cycle, 2 = 10 min, 3 = 5, etc...
+                    if (timeOfDay >= 24f) timeOfDay -= 24f;
+                    SetMemberValue("timeOfDay", timeOfDay);
+                    CallMethod("SetTimeOfDay", timeOfDay);
+                }
+                if (dynamicWeatherEnabled)
+                {
+                    UpdateDynamicWeather();
+                }
             }
         }
 
@@ -505,7 +519,7 @@ namespace WeatherController
                 if (GUILayout.Button("Fast", smallButtonStyle)) dynamicSpeed = 2f;
                 if (GUILayout.Button("Rapid", smallButtonStyle)) dynamicSpeed = 4f;
                 GUILayout.EndHorizontal();
-
+                GUILayout.Space(3);
                 GUILayout.Space(3);
                 GUILayout.Label($"Intensity: {GetIntensityName(dynamicIntensity)}", labelStyle);
                 dynamicIntensity = GUILayout.HorizontalSlider(dynamicIntensity, 0f, 1f);
@@ -522,7 +536,7 @@ namespace WeatherController
                 GUILayout.Label($"Next change in: {Mathf.Max(0, nextWeatherChangeTime - weatherChangeTimer):F0}s", labelStyle);
             }
 
-            // === TIME (always manual) ===
+            // === TIME ===
             DrawSection("Time");
             GUILayout.Label($"Time of Day: {timeOfDay:F1}h ({FormatTime(timeOfDay)})", labelStyle);
             timeOfDay = GUILayout.HorizontalSlider(timeOfDay, 0f, 24f);
@@ -532,6 +546,20 @@ namespace WeatherController
             if (GUILayout.Button("Dusk", smallButtonStyle)) timeOfDay = 18f;
             if (GUILayout.Button("Night", smallButtonStyle)) timeOfDay = 0f;
             GUILayout.EndHorizontal();
+
+            // === Dynamic Time ===
+            dynamicTimeEnabled = GUILayout.Toggle(dynamicTimeEnabled, "Enable Dynamic Time");
+            if (dynamicTimeEnabled)
+            {
+                GUILayout.Label($"Speed (Time): {dynamicTime:F1}x", labelStyle);
+                dynamicTime = GUILayout.HorizontalSlider(dynamicTime, 0.2f, 5f);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Slow", smallButtonStyle)) dynamicTime = 0.5f;
+                if (GUILayout.Button("Normal", smallButtonStyle)) dynamicTime = 1f;
+                if (GUILayout.Button("Fast", smallButtonStyle)) dynamicTime = 2f;
+                if (GUILayout.Button("Rapid", smallButtonStyle)) dynamicTime = 4f;
+                GUILayout.EndHorizontal();
+            }
 
             // === CONDITIONS ===
             DrawSection("Sky");
