@@ -565,8 +565,8 @@ namespace WeatherController
                 if (GUILayout.Button("Normal", smallButtonStyle)) dynamicTime = 1f;
                 if (GUILayout.Button("Fast", smallButtonStyle)) dynamicTime = 1.5f;
                 if (GUILayout.Button("Rapid", smallButtonStyle)) dynamicTime = 3f;
-                GUILayout.Label($"24 hours = {24 * (3600 / (dynamicTime * 60)) / 60:F1} min", labelStyle);
                 GUILayout.EndHorizontal();
+                GUILayout.Label($"24 hours = {24 * (3600 / (dynamicTime * 60)) / 60:F1} min", labelStyle);
             }
 
             // === CONDITIONS ===
