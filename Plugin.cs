@@ -92,19 +92,19 @@ namespace WeatherController
                     SearchWeatherSystem();
                 }
             }
-            // Dynamic weather update
-            if (initialized && weatherTarget != null)
+            // Dynamic weather and time update
+            if (initialized)
             {
                 if (dynamicTimeEnabled)
                 {
-                    timeOfDay += (Time.deltaTime * (72 * dynamicTime) / 3600f); // A dynamic time of 1 = 20 min per  in game 24 hour cycle, 2 = 10 min, 3 = 5, etc...
-                    if (timeOfDay >= 24f) timeOfDay -= 24f;
-                    SetMemberValue("timeOfDay", timeOfDay);
-                    CallMethod("SetTimeOfDay", timeOfDay);
+                    UpdateDynamicTime();
                 }
-                if (dynamicWeatherEnabled)
+                if (weatherTarget != null)
                 {
-                    UpdateDynamicWeather();
+                    if (dynamicWeatherEnabled)
+                    {
+                        UpdateDynamicWeather();
+                    }
                 }
             }
         }
@@ -153,6 +153,13 @@ namespace WeatherController
             }
         }
 
+        private void UpdateDynamicTime()
+        {
+            timeOfDay += (Time.deltaTime * (60 * dynamicTime) / 3600f); // A dynamic time of 1 = 24 min per in game 24 hour cycle, 2 = 12 min, 3 = 6, etc...
+            if (timeOfDay >= 24f) timeOfDay -= 24f;
+            SetMemberValue("timeOfDay", timeOfDay, false);
+            CallMethod("SetTimeOfDay", false, timeOfDay);
+        }
         private void PickNewWeatherTarget()
         {
             // Determine weather trend
@@ -380,7 +387,7 @@ namespace WeatherController
             catch { }
         }
 
-        private void SetMemberValue(string key, object value)
+        private void SetMemberValue(string key, object value, bool echo = true)
         {
             if (!weatherMembers.ContainsKey(key)) return;
 
@@ -392,12 +399,12 @@ namespace WeatherController
                 if (member is PropertyInfo prop && prop.CanWrite)
                 {
                     prop.SetValue(target, Convert.ChangeType(value, prop.PropertyType));
-                    Log.LogInfo($"Set {key} = {value}");
+                    if (echo) { Log.LogInfo($"Set {key} = {value}"); }
                 }
                 else if (member is FieldInfo field)
                 {
                     field.SetValue(target, Convert.ChangeType(value, field.FieldType));
-                    Log.LogInfo($"Set {key} = {value}");
+                    if (echo) { Log.LogInfo($"Set {key} = {value}"); }
                 }
             }
             catch (Exception e)
@@ -406,14 +413,14 @@ namespace WeatherController
             }
         }
 
-        private void CallMethod(string name, params object[] args)
+        private void CallMethod(string name, bool echo, params object[] args)
         {
             if (!weatherMethods.ContainsKey(name) || weatherTarget == null) return;
 
             try
             {
                 weatherMethods[name].Invoke(weatherTarget, args);
-                Log.LogInfo($"Called {name}");
+                if (echo) { Log.LogInfo($"Called {name}"); }
             }
             catch (Exception e)
             {
@@ -439,9 +446,9 @@ namespace WeatherController
             if (weatherMembers.ContainsKey("moonPhase")) { SetMemberValue("moonPhase", moonPhase); changes++; }
             if (weatherMembers.ContainsKey("conditions")) { SetMemberValue("conditions", conditions); changes++; }
 
-            if (weatherMethods.ContainsKey("SetTimeOfDay")) CallMethod("SetTimeOfDay", timeOfDay);
-            if (weatherMethods.ContainsKey("SetWindHeading")) CallMethod("SetWindHeading", windHeading);
-            if (weatherMethods.ContainsKey("SetMoonPhase")) CallMethod("SetMoonPhase", moonPhase);
+            if (weatherMethods.ContainsKey("SetTimeOfDay")) CallMethod("SetTimeOfDay", true, timeOfDay);
+            if (weatherMethods.ContainsKey("SetWindHeading")) CallMethod("SetWindHeading", true, windHeading);
+            if (weatherMethods.ContainsKey("SetMoonPhase")) CallMethod("SetMoonPhase", true, moonPhase);
 
             statusMessage = $"Applied {changes} settings";
         }
@@ -556,8 +563,9 @@ namespace WeatherController
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Slow", smallButtonStyle)) dynamicTime = 0.5f;
                 if (GUILayout.Button("Normal", smallButtonStyle)) dynamicTime = 1f;
-                if (GUILayout.Button("Fast", smallButtonStyle)) dynamicTime = 2f;
-                if (GUILayout.Button("Rapid", smallButtonStyle)) dynamicTime = 4f;
+                if (GUILayout.Button("Fast", smallButtonStyle)) dynamicTime = 1.5f;
+                if (GUILayout.Button("Rapid", smallButtonStyle)) dynamicTime = 3f;
+                GUILayout.Label($"24 hours = {24 * (3600 / (dynamicTime * 60)) / 60:F1} min", labelStyle);
                 GUILayout.EndHorizontal();
             }
 
